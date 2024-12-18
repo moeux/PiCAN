@@ -4,7 +4,7 @@
 #include "hardware/adc.h"
 #include "can2040.h"
 #include "RP2040.h"
-#include "pico_servo.h"
+#include "servo.h"
 
 #define SERVO
 
@@ -68,9 +68,7 @@ int main()
 #ifdef SERVO
     const uint servo_pin = 2;
 
-    servo_init();
-    servo_clock_auto();
-    servo_attach(servo_pin);
+    setServo(servo_pin, 500);
     printf("Servo initialized.");
 #else
     const uint joystick_pin = 28;
@@ -83,11 +81,9 @@ int main()
     while (1)
     {
 #ifdef SERVO
-        printf("Moving servo to 0!\n");
-        servo_move_to(servo_pin, 0);
+        setMillis(servo_pin, 1500);
         sleep_ms(500);
-        printf("Moving servo to 180!\n");
-        servo_move_to(servo_pin, 180);
+        setMillis(servo_pin, 2000);
         sleep_ms(500);
 #else
         // 21 - 4095
