@@ -8,23 +8,27 @@
 
 #define SERVO
 
+#ifdef SERVO
+static uint16_t input = 1500;
+#endif
+
 static struct can2040 cbus;
 
 static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *msg)
 {
     switch (notify)
     {
-#ifdef SERVO
     case CAN2040_NOTIFY_RX:
         printf("CAN message has been received.\n");
         printf("[%d] - (%d): %s\n", msg->id, msg->dlc, (char *)msg->data);
+#ifdef SERVO
+        input = (uint16_t)msg->data32[0];
+#endif
         break;
-#else
     case CAN2040_NOTIFY_TX:
         printf("CAN message has been sent.\n");
         printf("[%d] - (%d): %s\n", msg->id, msg->dlc, (char *)msg->data);
         break;
-#endif
     case CAN2040_NOTIFY_ERROR:
         printf("CAN Receive Buffer Overflow.\n");
         break;
@@ -68,7 +72,7 @@ int main()
 #ifdef SERVO
     const uint servo_pin = 2;
 
-    setServo(servo_pin, 500);
+    setServo(servo_pin, 1500);
     printf("Servo initialized.");
 #else
     const uint joystick_pin = 28;
@@ -81,14 +85,36 @@ int main()
     while (1)
     {
 #ifdef SERVO
-        setMillis(servo_pin, 1500);
-        sleep_ms(500);
-        setMillis(servo_pin, 2000);
-        sleep_ms(500);
+        // map: (x - joystick_min) * (servo_max - servo_min) / (joystick__max - joystick_min) + out_min
+        float millis = (input - 0) * (2500 - 1000) / (4096 - 0) + 1000;
+
+        setMillis(servo_pin, millis);
+        sleep_ms(50);
 #else
         // 21 - 4095
         adc_select_input(2);
-        printf(">x:%d\r\n", adc_read());
+
+        uint16_t value = adc_read();
+
+        printf(">joystick:%d\r\n", value);
+
+        if (can2040_check_transmit(&cbus))
+        {
+            struct can2040_msg msg = {
+                .id = 0xBEEF,
+                .dlc = sizeof(value),
+                .data32 = {value, 0}};
+
+            if (can2040_transmit(&cbus, &msg) != 0)
+            {
+                printf("Transmit Error, TX Queue full.\n");
+            }
+        }
+        else
+        {
+            printf("Error: Could not send message due to queue being full.\n");
+        }
+
         sleep_ms(50);
 #endif
     }
