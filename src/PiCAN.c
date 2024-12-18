@@ -1,37 +1,29 @@
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "hardware/adc.h"
 #include "can2040.h"
 #include "RP2040.h"
 #include "pico_servo.h"
 
-#define SENDER
+#define SERVO
 
 static struct can2040 cbus;
 
-#ifndef SENDER
-static bool sendMsg = false;
-#endif
-
 static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *msg)
 {
-    printf("Callback triggered.\n");
-
     switch (notify)
     {
+#ifdef SERVO
     case CAN2040_NOTIFY_RX:
         printf("CAN message has been received.\n");
         printf("[%d] - (%d): %s\n", msg->id, msg->dlc, (char *)msg->data);
-
-#ifndef SENDER
-        sendMsg = true;
-#endif
-
-        break;
+#else
     case CAN2040_NOTIFY_TX:
         printf("CAN message has been sent.\n");
         printf("[%d] - (%d): %s\n", msg->id, msg->dlc, (char *)msg->data);
         break;
+#endif
     case CAN2040_NOTIFY_ERROR:
         printf("CAN Receive Buffer Overflow.\n");
         break;
@@ -67,51 +59,41 @@ void canbus_setup(void)
 
 int main()
 {
-    char input[8] = "RCVDMSG\0";
-
     stdio_init_all();
+    printf("STDIO initialized.");
     canbus_setup();
+    printf("CAN Bus initialized.\n");
 
-    printf("STDIO and CAN Bus initialized.\n");
+#ifdef SERVO
+    const uint servo_pin = 2;
 
-    while (true)
+    servo_init();
+    servo_clock_auto();
+    servo_attach(servo_pin);
+    printf("Servo initialized.");
+#else
+    const uint joystick_pin = 28;
+
+    adc_init();
+    adc_gpio_init(joystick_pin);
+    printf("ADC GPIO initialized.");
+#endif
+
+    while (1)
     {
-#ifdef SENDER
-        fgets(input, sizeof(input), stdin);
-        printf("Received user input: '%s'\n", input);
-
-        if (can2040_check_transmit(&cbus))
+#ifdef SERVO
+        printf("Moving servo to 0!\n");
+        servo_move_to(servo_pin, 0);
+        sleep_ms(500);
+        printf("Moving servo to 180!\n");
+        servo_move_to(servo_pin, 180);
+        sleep_ms(500);
 #else
-        if (sendMsg && can2040_check_transmit(&cbus))
+        // 21 - 4095
+        adc_select_input(2);
+        uint adc_x_raw = adc_read();
+        printf("X: %d\n", adc_x_raw);
+        sleep_ms(50);
 #endif
-        {
-            struct can2040_msg msg = {
-                .id = 0xBEEF,
-                .dlc = sizeof(input),
-            };
-
-            memcpy(msg.data, input, sizeof(msg.data));
-
-            printf("Sending CAN message.\n");
-
-            if (can2040_transmit(&cbus, &msg) == 0)
-            {
-                printf("Transmit Success.\n");
-            }
-            else
-            {
-                printf("Transmit Error, TX Queue full.\n");
-            }
-        }
-#ifdef SENDER
-        else
-        {
-            printf("Error: Could not send message due to queue being full.\n");
-        }
-#else
-        sendMsg = false;
-#endif
-
-        sleep_ms(1000);
     }
 }
