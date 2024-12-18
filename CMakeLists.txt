@@ -47,7 +47,7 @@ pico_enable_stdio_uart(PiCAN 0)
 pico_enable_stdio_usb(PiCAN 1)
 
 # Add the standard library to the build
-target_link_libraries(PiCAN pico_stdlib hardware_pwm cmsis_core fixmath)
+target_link_libraries(PiCAN pico_stdlib hardware_adc hardware_pwm cmsis_core fixmath)
 
 # Add the standard include files to the build
 target_include_directories(PiCAN PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src lib/can2040/src lib/pico-servo/src lib/pico-servo/3rdparty/pico-libfixmath/include)
