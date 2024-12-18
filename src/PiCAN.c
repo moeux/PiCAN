@@ -18,6 +18,7 @@ static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *
     case CAN2040_NOTIFY_RX:
         printf("CAN message has been received.\n");
         printf("[%d] - (%d): %s\n", msg->id, msg->dlc, (char *)msg->data);
+        break;
 #else
     case CAN2040_NOTIFY_TX:
         printf("CAN message has been sent.\n");
@@ -40,9 +41,9 @@ static void PIOx_IRQHandler(void)
 
 void canbus_setup(void)
 {
-    uint32_t pio_num = 0;
-    uint32_t sys_clock = 125000000, bitrate = 500000;
-    uint32_t gpio_rx = 20, gpio_tx = 21;
+    const uint32_t pio_num = 0;
+    const uint32_t sys_clock = 125000000, bitrate = 500000;
+    const uint32_t gpio_rx = 20, gpio_tx = 21;
 
     // Setup CAN bus
     can2040_setup(&cbus, pio_num);
@@ -91,8 +92,7 @@ int main()
 #else
         // 21 - 4095
         adc_select_input(2);
-        uint adc_x_raw = adc_read();
-        printf("X: %d\n", adc_x_raw);
+        printf(">x:%d\r\n", adc_read());
         sleep_ms(50);
 #endif
     }
