@@ -33,9 +33,11 @@ project(PiCAN C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory(lib)
+
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(PiCAN src/PiCAN.c lib/can2040/src/can2040.c)
+add_executable(PiCAN src/PiCAN.c lib/can2040/src/can2040.c lib/pico-servo/src/pico_servo.c)
 
 pico_set_program_name(PiCAN "PiCAN")
 pico_set_program_version(PiCAN "0.1")
@@ -45,10 +47,10 @@ pico_enable_stdio_uart(PiCAN 0)
 pico_enable_stdio_usb(PiCAN 1)
 
 # Add the standard library to the build
-target_link_libraries(PiCAN pico_stdlib cmsis_core)
+target_link_libraries(PiCAN pico_stdlib hardware_pwm cmsis_core fixmath)
 
 # Add the standard include files to the build
-target_include_directories(PiCAN PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src lib/can2040/src)
+target_include_directories(PiCAN PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src lib/can2040/src lib/pico-servo/src lib/pico-servo/3rdparty/pico-libfixmath/include)
 
 pico_add_extra_outputs(PiCAN)
 

@@ -3,6 +3,7 @@
 #include "pico/stdlib.h"
 #include "can2040.h"
 #include "RP2040.h"
+#include "pico_servo.h"
 
 #define SENDER
 
